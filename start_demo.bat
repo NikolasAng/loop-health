@@ -37,17 +37,16 @@ if errorlevel 1 (
 echo 🚀 Starting Flask backend server (port 5000)...
 echo    - Computing real Loop Health metrics
 echo.
-set "CHESS_DIR=%cd%\games\chess"
-start "Flask Server - Loop Health Chess LH" /D "%CHESS_DIR%" python chess_lh_server.py
+start "Flask Server - Loop Health Chess LH" "%cd%\games\chess\run_server.bat" flask
 
 echo ⏳ Waiting 12 seconds for Flask server to initialize...
 timeout /t 12 /nobreak
 
 echo.
 echo 🌐 Starting HTTP server (port 8000)...
-echo    - Serving from games\chess directory where HTML exists
+echo    - Serving from games\chess directory
 echo.
-start "HTTP Server - Chess Demo" /D "%CHESS_DIR%" python -m http.server 8000
+start "HTTP Server - Chess Demo" "%cd%\games\chess\run_server.bat" http
 
 echo ⏳ Waiting 8 seconds for HTTP server to initialize...
 timeout /t 8 /nobreak
