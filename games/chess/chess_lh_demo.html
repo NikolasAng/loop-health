@@ -89,7 +89,10 @@ button.danger:hover:not(:disabled){background:#ffe0e0;color:#cc0000}
 </head>
 <body>
 <h1>Chess — Loop Health Stagnation Detection</h1>
-<p class="subtitle">Interactive demo: Play and watch for repetitions and stagnation patterns</p>
+<p class="subtitle">Interactive demo with real LH computation from Python backend</p>
+<p class="subtitle" style="color:#ff6600;font-size:.65rem;margin-bottom:10px">
+  💡 Start server: <code style="background:#e0e0e0;padding:2px 6px;border-radius:3px;color:#333">python chess_lh_server.py</code> for real LH metrics
+</p>
 
 <div id="mainContainer">
   <!-- Board -->
@@ -179,6 +182,8 @@ const positionHistory = [];
 const moveSequence = [];
 let selectedSquare = null;
 let selectedPiece = null;
+let serverConnected = false;
+const SERVER_URL = 'http://localhost:5000';
 
 const pieces = {p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚',
                 P:'♙',N:'♘',B:'♗',R:'♖',Q:'♕',K:'♔'};
@@ -193,7 +198,25 @@ const LH_CONFIG = {
 // ─ Initialization ─
 function init() {
   renderBoard();
+  checkServerConnection();
   newGame();
+}
+
+function checkServerConnection() {
+  fetch(SERVER_URL + '/health')
+    .then(r => r.json())
+    .then(data => {
+      if(data.status === 'ok') {
+        serverConnected = true;
+        console.log('✓ Connected to Loop Health server');
+        document.getElementById('statusText').textContent = '✓ Server connected — starting game';
+      }
+    })
+    .catch(err => {
+      serverConnected = false;
+      console.log('✗ Server not available (run: python chess_lh_server.py)');
+      document.getElementById('statusText').textContent = '✗ Server offline — showing demo mode only';
+    });
 }
 
 function newGame() {
@@ -310,6 +333,65 @@ function resetView() {
 }
 
 // ─ Loop Health Calculation ─
+
+// Fetch real LH metrics from Python backend
+async function updateLHFromServer() {
+  if(!serverConnected || gameHistory.length === 0) return;
+  
+  try {
+    const moves = gameHistory.map(m => m.from + m.to + (m.promotion || ''));
+    
+    const response = await fetch(SERVER_URL + '/compute-lh', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({moves, current_move: moves.length})
+    });
+    
+    const result = await response.json();
+    
+    if(result.success) {
+      // Display latest move analysis
+      const lastMove = result.moves[result.moves.length - 1];
+      const summary = result.summary;
+      
+      // Update LH displays
+      const repetitions = lastMove.repetitions || 1;
+      
+      // Show loop detection
+      const loopList = document.getElementById('loopList');
+      if(summary.loops_detected > 0) {
+        loopList.innerHTML = `
+          <div class="loop-entry detected">
+            ✓ LOOPS DETECTED: ${summary.loops_detected}
+          </div>
+          <div class="loop-entry">
+            Max Repetition: ${summary.max_repetition}×
+          </div>
+          <div class="loop-entry">
+            Functional: ${summary.functional_loops}
+          </div>
+        `;
+      } else {
+        loopList.innerHTML = '<div style="color:#999;font-size:.65rem">No loops detected</div>';
+      }
+      
+      // Alert if stagnation likely
+      const alertBox = document.getElementById('alertBox');
+      if(summary.max_repetition >= 3) {
+        alertBox.style.display = 'block';
+        alertBox.classList.add('warning');
+        document.getElementById('alertText').textContent = 
+          `⚠ Position repeated ${summary.max_repetition}× — STAGNATION DETECTED by Loop Health!`;
+      } else {
+        alertBox.style.display = 'none';
+      }
+    }
+  } catch(err) {
+    // Server error - fall back to demo mode
+    console.log('Server call failed:', err.message);
+  }
+}
+
 function calculateLH() {
   const fen = game.fen();
   const posCount = positionHistory.filter(p => p === fen).length;
@@ -361,7 +443,14 @@ function calculateMaterial(color) {
 function updateDisplay() {
   renderBoard();
   updateGameInfo();
-  updateLHPanel();
+  
+  // Try to get real LH from server, fall back to demo calculation
+  if(serverConnected && gameHistory.length > 0) {
+    updateLHFromServer();
+  } else {
+    updateLHPanel();
+  }
+  
   updateMoveHistory();
   updateStatus();
 }
