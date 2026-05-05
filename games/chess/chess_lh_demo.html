@@ -176,6 +176,7 @@ button.danger:hover:not(:disabled){background:#ffe0e0;color:#cc0000}
 const game = new Chess();
 const gameHistory = [];
 const positionHistory = [];
+const moveSequence = [];
 let selectedSquare = null;
 let selectedPiece = null;
 
@@ -199,6 +200,7 @@ function newGame() {
   game.reset();
   gameHistory.length = 0;
   positionHistory.length = 0;
+  moveSequence.length = 0;
   selectedSquare = null;
   positionHistory.push(game.fen());
   updateDisplay();
@@ -275,6 +277,7 @@ function handleSquareClick(square) {
     if(move) {
       gameHistory.push(move);
       positionHistory.push(game.fen());
+      moveSequence.push(move.san);
       selectedSquare = null;
       updateDisplay();
       return;
@@ -296,6 +299,7 @@ function undoMove() {
   game.undo();
   gameHistory.pop();
   positionHistory.pop();
+  moveSequence.pop();
   selectedSquare = null;
   updateDisplay();
 }
@@ -406,6 +410,22 @@ function updateLHPanel() {
     alertBox.classList.add('warning');
     document.getElementById('alertText').textContent = 
       `⚠ Position repeated ${lh.repetitions} times — stagnation detected!`;
+  } else if(moveSequence.length >= 6) {
+    // Check if same 2-3 moves are repeating
+    const lastMoves = moveSequence.slice(-6);
+    if(lastMoves[0] === lastMoves[2] && lastMoves[2] === lastMoves[4]) {
+      alertBox.style.display = 'block';
+      alertBox.classList.remove('warning');
+      document.getElementById('alertText').textContent = 
+        `⚠ Move pattern detected: ${lastMoves[0]} repeating!`;
+    } else if(lastMoves[1] === lastMoves[3] && lastMoves[3] === lastMoves[5]) {
+      alertBox.style.display = 'block';
+      alertBox.classList.remove('warning');
+      document.getElementById('alertText').textContent = 
+        `⚠ Move pattern detected: ${lastMoves[1]} repeating!`;
+    } else {
+      alertBox.style.display = 'none';
+    }
   } else if(lh.is_sterile) {
     alertBox.style.display = 'block';
     alertBox.classList.remove('warning');
@@ -415,27 +435,59 @@ function updateLHPanel() {
     alertBox.style.display = 'none';
   }
   
-  // Loop list
+    // Loop list - show both position and move repetitions
   const loopList = document.getElementById('loopList');
   const positionCounts = {};
   positionHistory.forEach(pos => {
     positionCounts[pos] = (positionCounts[pos] || 0) + 1;
   });
   
+  // Also count repeated move patterns (last 2-4 moves)
+  const movePatterns = {};
+  for(let i = 2; i < moveSequence.length; i++) {
+    const pattern2 = moveSequence.slice(i-2, i).join(' ');
+    movePatterns[pattern2] = (movePatterns[pattern2] || 0) + 1;
+    
+    if(i >= 3) {
+      const pattern3 = moveSequence.slice(i-3, i).join(' ');
+      movePatterns[pattern3] = (movePatterns[pattern3] || 0) + 1;
+    }
+  }
+  
   const repeatedPos = Object.entries(positionCounts)
     .filter(([pos, count]) => count > 1)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+    .slice(0, 3);
+  
+  const repeatedMoves = Object.entries(movePatterns)
+    .filter(([pat, count]) => count > 1)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  
+  let loopHTML = '';
   
   if(repeatedPos.length > 0) {
-    loopList.innerHTML = repeatedPos
+    loopHTML += repeatedPos
       .map(([pos, count]) => 
         `<div class="loop-entry ${count >= 3 ? 'detected' : ''}">
-          Rep. ${count}× · ${Math.round(positionHistory.lastIndexOf(pos) - positionHistory.indexOf(pos))} half-moves
+          POS: ×${count}
          </div>`)
       .join('');
+  }
+  
+  if(repeatedMoves.length > 0) {
+    loopHTML += repeatedMoves
+      .map(([pat, count]) => 
+        `<div class="loop-entry ${count >= 3 ? 'detected' : ''}">
+          ${pat} ×${count}
+         </div>`)
+      .join('');
+  }
+  
+  if(loopHTML === '') {
+    loopList.innerHTML = '<div style="color:#999;font-size:.65rem">No repetitions yet</div>';
   } else {
-    loopList.innerHTML = '<div style="color:#555577;font-size:.65rem">No loops detected yet</div>';
+    loopList.innerHTML = loopHTML;
   }
 }
 
