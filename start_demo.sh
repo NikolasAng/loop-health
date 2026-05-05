@@ -39,18 +39,37 @@ cd games/chess
 python3 chess_lh_server.py &
 FLASK_PID=$!
 
-echo "⏳ Waiting for Flask server to initialize (5 seconds)..."
-sleep 5
+echo "⏳ Waiting for Flask server to respond (checking every 1 second, timeout 30 seconds)..."
+for i in {1..30}; do
+    if curl -s http://localhost:5000/health >/dev/null 2>&1; then
+        echo "✅ Flask server is ready"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo "❌ Flask server failed to start after 30 seconds"
+    fi
+    sleep 1
+done
 
 echo ""
 echo "🌐 Starting HTTP server (port 8000)..."
 echo "   - Serving interactive demo"
 echo ""
+cd ..
 python3 -m http.server 8000 &
 HTTP_PID=$!
 
-echo "⏳ Waiting for HTTP server to initialize (5 seconds)..."
-sleep 5
+echo "⏳ Waiting for HTTP server to respond (checking every 1 second, timeout 30 seconds)..."
+for i in {1..30}; do
+    if curl -s http://localhost:8000/ >/dev/null 2>&1; then
+        echo "✅ HTTP server is ready"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo "❌ HTTP server failed to start after 30 seconds"
+    fi
+    sleep 1
+done
 
 echo ""
 echo "🎮 Opening Chess demo in browser..."
