@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chess — Loop Health Stagnation Detection</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f0f1a;color:#e0e0f0;font-family:'Courier New',monospace;
+     display:flex;flex-direction:column;align-items:center;padding:20px;min-height:100vh}
+h1{font-size:1.2rem;color:#8888cc;letter-spacing:2px;margin-bottom:4px;font-weight:600}
+.subtitle{font-size:.7rem;color:#6666aa;letter-spacing:1px;margin-bottom:20px}
+
+/* Main layout */
+#mainContainer{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+
+/* Board section */
+#boardSection{display:flex;flex-direction:column;align-items:center;gap:12px}
+#boardWrapper{border:3px solid #4444aa;background:#1a1a2e;position:relative;border-radius:4px}
+#chessboard{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:0;width:400px;height:400px;user-select:none}
+.square{width:50px;height:50px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;
+        font-size:28px;transition:background .1s;border:1px solid rgba(68,68,170,.2)}
+.square.light{background:#2a2a4a}
+.square.dark{background:#1a1a3a}
+.square.selected{background:#4a4a6a!important}
+.square.highlight{box-shadow:inset 0 0 8px #66ff66aa}
+.square.stagnant{box-shadow:inset 0 0 12px #ff4444aa;animation:pulse-stagnant .6s infinite}
+@keyframes pulse-stagnant{0%{box-shadow:inset 0 0 12px #ff4444aa}50%{box-shadow:inset 0 0 20px #ff6666cc}100%{box-shadow:inset 0 0 12px #ff4444aa}}
+.coord-label{position:absolute;font-size:8px;color:#555577;font-weight:bold;letter-spacing:.5px}
+.coord-file{bottom:2px;right:3px}
+.coord-rank{top:2px;left:3px}
+
+/* Game info */
+#gameInfo{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:10px;min-width:220px;font-size:.8rem}
+#gameInfo h3{color:#8888cc;margin-bottom:6px;font-size:.75rem;letter-spacing:1px}
+.info-row{display:flex;justify-content:space-between;margin:3px 0;padding:2px 0;border-bottom:1px solid #1a1a36}
+.info-row:last-child{border-bottom:none}
+.info-label{color:#6666aa}.info-value{color:#ddddff;font-weight:bold}
+
+/* LH panel */
+#lhPanel{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:12px;min-width:260px}
+#lhPanel h3{color:#8888cc;margin-bottom:8px;font-size:.75rem;letter-spacing:1px}
+
+/* LH bar */
+.lh-metric{margin-bottom:10px}
+.lh-name{font-size:.7rem;color:#6666aa;margin-bottom:3px;letter-spacing:.5px}
+.lh-bar-bg{width:100%;height:12px;background:#0f0f1a;border:1px solid #2a2a4a;border-radius:3px;overflow:hidden}
+.lh-bar{height:12px;border-radius:3px;transition:width .2s,background .2s;display:flex;align-items:center;justify-content:flex-end;padding-right:4px}
+.lh-value{font-size:.7rem;font-weight:bold;color:#fff}
+.lh-positive{background:linear-gradient(90deg,#66ff6600,#66ff66aa)}
+.lh-neutral{background:linear-gradient(90deg,#6666ff00,#6666ffaa)}
+.lh-negative{background:linear-gradient(90deg,#ff666600,#ff6666aa)}
+
+/* Alert box */
+#alertBox{display:none;background:#2a1a1a;border:2px solid #ff4444;border-radius:6px;padding:10px;margin-top:8px;color:#ff8888;font-size:.75rem;letter-spacing:.5px}
+#alertBox.warning{border-color:#ffaa44;color:#ffcc88;background:#2a2a1a}
+
+/* Loop list */
+#loopList{max-height:120px;overflow-y:auto;font-size:.7rem;color:#888899;margin-top:6px}
+.loop-entry{padding:3px 6px;margin:2px 0;background:#0f0f1a;border-left:2px solid #4444aa;border-radius:2px}
+.loop-entry.detected{border-left-color:#ff4444;background:#1a0f0f;color:#ff8888}
+
+/* Move history */
+#historyPanel{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:12px;min-width:260px}
+#historyPanel h3{color:#8888cc;margin-bottom:8px;font-size:.75rem;letter-spacing:1px}
+#moveList{max-height:200px;overflow-y:auto;font-size:.7rem;color:#888899}
+.move-entry{padding:3px 6px;margin:1px 0;background:#0f0f1a;border-left:2px solid #3333aa;border-radius:2px;display:flex;justify-content:space-between}
+.move-entry.repetition{border-left-color:#ffaa44;color:#ffcc88}
+.move-num{min-width:30px;color:#6666aa}.move-san{flex:1}.move-lh{text-align:right;min-width:40px;font-weight:bold}
+
+/* Status bar */
+#statusBar{margin-top:12px;text-align:center;padding:8px;background:#0f0f1a;border:1px solid #2a2a4a;border-radius:4px;font-size:.75rem;color:#aaaacc}
+#statusText{color:#ddddff;letter-spacing:.5px}
+
+/* Controls */
+#controls{margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+button{padding:8px 16px;background:#2a2a4a;border:1px solid #3333aa;color:#aaaadd;border-radius:4px;cursor:pointer;
+       font-family:inherit;font-size:.75rem;letter-spacing:.5px;transition:.15s}
+button:hover:not(:disabled){background:#3a3a5a;color:#ddddff}
+button:disabled{opacity:.4;cursor:default}
+button.danger{border-color:#ff4444;color:#ff8888}
+button.danger:hover:not(:disabled){background:#3a1a1a;color:#ffaaaa}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:#0f0f1a}
+::-webkit-scrollbar-thumb{background:#3333aa;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#4444cc}
+</style>
+</head>
+<body>
+<h1>Chess — Loop Health Stagnation Detection</h1>
+<p class="subtitle">Interactive demo: Play and watch for repetitions and stagnation patterns</p>
+
+<div id="mainContainer">
+  <!-- Board -->
+  <div id="boardSection">
+    <div id="boardWrapper">
+      <div id="chessboard"></div>
+    </div>
+    <div id="gameInfo">
+      <h3>Game Status</h3>
+      <div class="info-row"><span class="info-label">Position:</span><span class="info-value" id="posNum">0</span></div>
+      <div class="info-row"><span class="info-label">Half-moves:</span><span class="info-value" id="moveNum">0</span></div>
+      <div class="info-row"><span class="info-label">Repetitions:</span><span class="info-value" id="repCount">0</span></div>
+      <div class="info-row"><span class="info-label">Max Rep:</span><span class="info-value" id="maxRep">0</span></div>
+    </div>
+    <div id="controls">
+      <button onclick="newGame()">↻ New Game</button>
+      <button onclick="undoMove()" id="undoBtn" disabled>↶ Undo</button>
+      <button onclick="resetView()">⊙ Reset View</button>
+    </div>
+  </div>
+
+  <!-- LH Panel -->
+  <div id="lhPanel">
+    <h3>Loop Health Metrics</h3>
+    
+    <div class="lh-metric">
+      <div class="lh-name">LH(t) — Current</div>
+      <div class="lh-bar-bg">
+        <div class="lh-bar lh-neutral" id="lhBarCurrent" style="width:0%">
+          <span class="lh-value" id="lhValCurrent">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="lh-metric">
+      <div class="lh-name">LH⁻ — Circularity-Free</div>
+      <div class="lh-bar-bg">
+        <div class="lh-bar lh-neutral" id="lhBarCirc" style="width:0%">
+          <span class="lh-value" id="lhValCirc">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="lh-metric">
+      <div class="lh-name">Repetition Liability</div>
+      <div class="lh-bar-bg">
+        <div class="lh-bar lh-negative" id="lhBarRep" style="width:0%">
+          <span class="lh-value" id="lhValRep">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="alertBox" style="display:none">
+      ⚠ <span id="alertText">Game entering stagnation pattern</span>
+    </div>
+
+    <div>
+      <h3 style="margin-top:12px;margin-bottom:6px">Detected Loops</h3>
+      <div id="loopList">
+        <div style="color:#555577;font-size:.65rem">No loops detected yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Panel -->
+  <div id="historyPanel">
+    <h3>Move History with LH</h3>
+    <div id="moveList">
+      <div style="color:#555577;font-size:.65rem">Game not started</div>
+    </div>
+  </div>
+</div>
+
+<div id="statusBar">
+  <span id="statusText">Starting position — White to move</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+// ═════════════════════════════════════════════════════════════════
+// CHESS LOOP HEALTH DEMO
+// ═════════════════════════════════════════════════════════════════
+
+const game = new Chess();
+const gameHistory = [];
+const positionHistory = [];
+let selectedSquare = null;
+let selectedPiece = null;
+
+const pieces = {p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚',
+                P:'♙',N:'♘',B:'♗',R:'♖',Q:'♕',K:'♔'};
+
+// ─ Configuration ─
+const LH_CONFIG = {
+  w_i: 0.15, w_thr: 0.25, w_p: 0.20, w_e: 0.15, w_r: 0.05, w_a: 0.10, w_s: 0.10,
+  sterile_threshold: 0.05,
+  max_lh: 1.0
+};
+
+// ─ Initialization ─
+function init() {
+  renderBoard();
+  newGame();
+}
+
+function newGame() {
+  game.reset();
+  gameHistory.length = 0;
+  positionHistory.length = 0;
+  selectedSquare = null;
+  positionHistory.push(game.fen());
+  updateDisplay();
+}
+
+// ─ Board Rendering ─
+function renderBoard() {
+  const board = document.getElementById('chessboard');
+  board.innerHTML = '';
+  
+  for(let rank = 7; rank >= 0; rank--) {
+    for(let file = 0; file < 8; file++) {
+      const square = String.fromCharCode(97+file) + (rank+1);
+      const piece = game.get(square);
+      const isLight = (file + rank) % 2 === 0;
+      
+      const div = document.createElement('div');
+      div.className = `square ${isLight?'light':'dark'}`;
+      div.onclick = () => handleSquareClick(square);
+      div.dataset.square = square;
+      
+      // Piece
+      if(piece) {
+        div.textContent = pieces[piece.color + piece.type];
+      }
+      
+      // Coordinates
+      if(file === 0) {
+        const rankLabel = document.createElement('span');
+        rankLabel.className = 'coord-label coord-rank';
+        rankLabel.textContent = rank + 1;
+        div.appendChild(rankLabel);
+      }
+      if(rank === 0) {
+        const fileLabel = document.createElement('span');
+        fileLabel.className = 'coord-label coord-file';
+        fileLabel.textContent = String.fromCharCode(97+file);
+        div.appendChild(fileLabel);
+      }
+      
+      // Highlights
+      if(square === selectedSquare) {
+        div.classList.add('selected');
+      }
+      
+      board.appendChild(div);
+    }
+  }
+  
+  highlightStagnantSquares();
+}
+
+// ─ Square Interaction ─
+function handleSquareClick(square) {
+  if(game.game_over()) return;
+  
+  const piece = game.get(square);
+  
+  // Try move
+  if(selectedSquare && selectedSquare !== square) {
+    const move = game.move({from: selectedSquare, to: square, promotion: 'q'});
+    if(move) {
+      gameHistory.push(move);
+      positionHistory.push(game.fen());
+      selectedSquare = null;
+      updateDisplay();
+      return;
+    }
+  }
+  
+  // Select piece
+  if(piece && (game.turn() === 'w' ? piece.color === 'w' : piece.color === 'b')) {
+    selectedSquare = square;
+  } else {
+    selectedSquare = null;
+  }
+  
+  renderBoard();
+}
+
+function undoMove() {
+  if(gameHistory.length === 0) return;
+  game.undo();
+  gameHistory.pop();
+  positionHistory.pop();
+  selectedSquare = null;
+  updateDisplay();
+}
+
+function resetView() {
+  selectedSquare = null;
+  renderBoard();
+}
+
+// ─ Loop Health Calculation ─
+function calculateLH() {
+  const fen = game.fen();
+  const posCount = positionHistory.filter(p => p === fen).length;
+  const totalMoves = gameHistory.length;
+  
+  // Simple structural metrics
+  const board = game.board();
+  const pieces_on_board = board.flat().filter(p => p).length;
+  const material_white = calculateMaterial('w');
+  const material_black = calculateMaterial('b');
+  
+  // LH components (simplified)
+  const I = Math.min(1, pieces_on_board / 16); // Activity
+  const Thr = posCount > 1 ? Math.min(1, (posCount - 1) / 3) : 0; // Threatening
+  const P = game.moves().length > 0 ? 0 : 1; // Progress (0 if moves possible)
+  const E = Math.abs(material_white - material_black) / 3900; // Energy
+  const R = Math.min(1, posCount / 3); // Repetition
+  const A = game.in_check() ? 0.5 : 0; // Aggressive state
+  const S = posCount > 2 ? 1 : 0; // Stagnant
+  
+  const lh = LH_CONFIG.w_i * I + LH_CONFIG.w_thr * Thr + LH_CONFIG.w_p * P + 
+             LH_CONFIG.w_e * E + LH_CONFIG.w_r * R + LH_CONFIG.w_a * A - 
+             LH_CONFIG.w_s * S;
+  
+  const lh_circ = LH_CONFIG.w_i * I + LH_CONFIG.w_thr * Thr + LH_CONFIG.w_p * P + 
+                  LH_CONFIG.w_e * E + LH_CONFIG.w_r * R + LH_CONFIG.w_a * A;
+  
+  return {
+    lh: Math.max(-1, Math.min(1, lh)),
+    lh_circ: Math.max(-1, Math.min(1, lh_circ)),
+    repetitions: posCount,
+    is_sterile: I < LH_CONFIG.sterile_threshold
+  };
+}
+
+function calculateMaterial(color) {
+  const values = {p:1,n:3,b:3,r:5,q:9,k:0};
+  let total = 0;
+  for(let square in game.SQUARES) {
+    const piece = game.get(square);
+    if(piece && piece.color === color) {
+      total += values[piece.type];
+    }
+  }
+  return total;
+}
+
+// ─ Display Update ─
+function updateDisplay() {
+  renderBoard();
+  updateGameInfo();
+  updateLHPanel();
+  updateMoveHistory();
+  updateStatus();
+}
+
+function updateGameInfo() {
+  document.getElementById('posNum').textContent = positionHistory.length;
+  document.getElementById('moveNum').textContent = gameHistory.length;
+  
+  const fen = game.fen();
+  const repCount = positionHistory.filter(p => p === fen).length;
+  document.getElementById('repCount').textContent = repCount;
+  
+  let maxRep = 0;
+  positionHistory.forEach(pos => {
+    maxRep = Math.max(maxRep, positionHistory.filter(p => p === pos).length);
+  });
+  document.getElementById('maxRep').textContent = maxRep;
+}
+
+function updateLHPanel() {
+  const lh = calculateLH();
+  
+  // LH Current
+  const lhPct = Math.round((lh.lh + 1) / 2 * 100);
+  document.getElementById('lhBarCurrent').style.width = lhPct + '%';
+  document.getElementById('lhBarCurrent').className = 
+    lh.lh > 0.1 ? 'lh-bar lh-positive' : lh.lh < -0.1 ? 'lh-bar lh-negative' : 'lh-bar lh-neutral';
+  document.getElementById('lhValCurrent').textContent = lh.lh.toFixed(3);
+  
+  // LH Circularity-free
+  const lhCircPct = Math.round((lh.lh_circ + 1) / 2 * 100);
+  document.getElementById('lhBarCirc').style.width = lhCircPct + '%';
+  document.getElementById('lhBarCirc').className = 
+    lh.lh_circ > 0.1 ? 'lh-bar lh-positive' : 'lh-bar lh-neutral';
+  document.getElementById('lhValCirc').textContent = lh.lh_circ.toFixed(3);
+  
+  // Repetition Liability
+  const repPct = Math.round(lh.repetitions / 5 * 100);
+  document.getElementById('lhBarRep').style.width = Math.min(repPct, 100) + '%';
+  document.getElementById('lhValRep').textContent = lh.repetitions;
+  
+  // Alert
+  const alertBox = document.getElementById('alertBox');
+  if(lh.repetitions >= 3) {
+    alertBox.style.display = 'block';
+    alertBox.classList.add('warning');
+    document.getElementById('alertText').textContent = 
+      `⚠ Position repeated ${lh.repetitions} times — stagnation detected!`;
+  } else if(lh.is_sterile) {
+    alertBox.style.display = 'block';
+    alertBox.classList.remove('warning');
+    document.getElementById('alertText').textContent = 
+      `Position has few pieces — limited move options`;
+  } else {
+    alertBox.style.display = 'none';
+  }
+  
+  // Loop list
+  const loopList = document.getElementById('loopList');
+  const positionCounts = {};
+  positionHistory.forEach(pos => {
+    positionCounts[pos] = (positionCounts[pos] || 0) + 1;
+  });
+  
+  const repeatedPos = Object.entries(positionCounts)
+    .filter(([pos, count]) => count > 1)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  
+  if(repeatedPos.length > 0) {
+    loopList.innerHTML = repeatedPos
+      .map(([pos, count]) => 
+        `<div class="loop-entry ${count >= 3 ? 'detected' : ''}">
+          Rep. ${count}× · ${Math.round(positionHistory.lastIndexOf(pos) - positionHistory.indexOf(pos))} half-moves
+         </div>`)
+      .join('');
+  } else {
+    loopList.innerHTML = '<div style="color:#555577;font-size:.65rem">No loops detected yet</div>';
+  }
+}
+
+function updateMoveHistory() {
+  const moveList = document.getElementById('moveList');
+  
+  if(gameHistory.length === 0) {
+    moveList.innerHTML = '<div style="color:#555577;font-size:.65rem">No moves yet</div>';
+    return;
+  }
+  
+  // Recalculate game to get LH at each move
+  const tempGame = new Chess();
+  const entries = [];
+  
+  gameHistory.forEach((move, idx) => {
+    tempGame.move(move);
+    const posCount = positionHistory.slice(0, idx + 1).filter(p => p === tempGame.fen()).length;
+    const moveNum = Math.floor(idx / 2) + 1;
+    const moveColor = idx % 2 === 0 ? 'W' : 'B';
+    
+    entries.push(`
+      <div class="move-entry ${posCount > 1 ? 'repetition' : ''}">
+        <span class="move-num">${moveNum}${moveColor}</span>
+        <span class="move-san">${move.san}</span>
+        <span class="move-lh">${posCount > 1 ? `×${posCount}` : '-'}</span>
+      </div>
+    `);
+  });
+  
+  moveList.innerHTML = entries.join('');
+  moveList.scrollTop = moveList.scrollHeight;
+}
+
+function updateStatus() {
+  const statusText = document.getElementById('statusText');
+  
+  if(game.game_over()) {
+    if(game.in_checkmate()) {
+      statusText.textContent = `Checkmate — ${game.turn() === 'w' ? 'Black' : 'White'} wins`;
+    } else if(game.in_draw()) {
+      statusText.textContent = 'Draw by stalemate, insufficient material, or 50-move rule';
+    } else if(game.in_threefold_repetition()) {
+      statusText.textContent = 'Draw — threefold repetition';
+    }
+  } else {
+    const moveCount = gameHistory.length;
+    const fen = game.fen();
+    const repCount = positionHistory.filter(p => p === fen).length;
+    
+    statusText.textContent = `${game.turn() === 'w' ? 'White' : 'Black'} to move · Move ${Math.ceil(moveCount/2)} · Position ${repCount > 1 ? `repeated ${repCount}×` : 'unique'}`;
+  }
+  
+  // Update buttons
+  document.getElementById('undoBtn').disabled = gameHistory.length === 0;
+}
+
+function highlightStagnantSquares() {
+  const fen = game.fen();
+  const repCount = positionHistory.filter(p => p === fen).length;
+  
+  if(repCount >= 3) {
+    document.querySelectorAll('.square').forEach(sq => {
+      if(Math.random() < 0.3) sq.classList.add('stagnant');
+    });
+  }
+}
+
+// Start
+init();
+</script>
+</body>
+</html>
