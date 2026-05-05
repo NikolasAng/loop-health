@@ -44,9 +44,8 @@ timeout /t 12 /nobreak
 
 echo.
 echo 🌐 Starting HTTP server (port 8000)...
-echo    - Serving interactive demo
+echo    - Serving interactive demo from games\chess directory
 echo.
-cd ..
 start "HTTP Server - Chess Demo" python -m http.server 8000
 
 echo ⏳ Waiting 8 seconds for HTTP server to initialize...

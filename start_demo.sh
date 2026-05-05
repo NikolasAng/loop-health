@@ -44,9 +44,8 @@ sleep 12
 
 echo ""
 echo "🌐 Starting HTTP server (port 8000)..."
-echo "   - Serving interactive demo"
+echo "   - Serving interactive demo from games/chess directory"
 echo ""
-cd ..
 python3 -m http.server 8000 >/dev/null 2>&1 &
 HTTP_PID=$!
 
