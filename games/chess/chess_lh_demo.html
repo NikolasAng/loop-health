@@ -5,88 +5,86 @@
 <title>Chess — Loop Health Stagnation Detection</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f0f1a;color:#e0e0f0;font-family:'Courier New',monospace;
+body{background:#f0f0f0;color:#333;font-family:'Arial',sans-serif;
      display:flex;flex-direction:column;align-items:center;padding:20px;min-height:100vh}
-h1{font-size:1.2rem;color:#8888cc;letter-spacing:2px;margin-bottom:4px;font-weight:600}
-.subtitle{font-size:.7rem;color:#6666aa;letter-spacing:1px;margin-bottom:20px}
+h1{font-size:1.2rem;color:#333;letter-spacing:2px;margin-bottom:4px;font-weight:600}
+.subtitle{font-size:.7rem;color:#666;letter-spacing:1px;margin-bottom:20px}
 
 /* Main layout */
 #mainContainer{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
 
 /* Board section */
 #boardSection{display:flex;flex-direction:column;align-items:center;gap:12px}
-#boardWrapper{border:3px solid #4444aa;background:#1a1a2e;position:relative;border-radius:4px}
+#boardWrapper{border:3px solid #333;background:#fff;position:relative;border-radius:4px}
 #chessboard{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:0;width:400px;height:400px;user-select:none}
 .square{width:50px;height:50px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;
-        font-size:24px;font-weight:bold;transition:background .1s;border:1px solid rgba(68,68,170,.2);font-family:Arial,sans-serif}
-.square.light{background:#2a2a4a}
-.square.dark{background:#1a1a3a}
-.piece-w{color:#ffffff;text-shadow:2px 2px 4px rgba(0,0,0,.7),0 0 2px rgba(100,100,200,.5)}
-.piece-b{color:#222222;text-shadow:2px 2px 4px rgba(255,255,255,.3),0 0 2px rgba(100,100,200,.5)}
-.square.selected{background:#4a4a6a!important}
+        font-size:32px;font-weight:bold;transition:background .1s;border:1px solid #999}
+.square.light{background:#f0e6d2}
+.square.dark{background:#b58863}
+.square.selected{background:#baca44!important;box-shadow:inset 0 0 8px #888}
 .square.highlight{box-shadow:inset 0 0 8px #66ff66aa}
 .square.stagnant{box-shadow:inset 0 0 12px #ff4444aa;animation:pulse-stagnant .6s infinite}
 @keyframes pulse-stagnant{0%{box-shadow:inset 0 0 12px #ff4444aa}50%{box-shadow:inset 0 0 20px #ff6666cc}100%{box-shadow:inset 0 0 12px #ff4444aa}}
-.coord-label{position:absolute;font-size:8px;color:#555577;font-weight:bold;letter-spacing:.5px}
+.coord-label{position:absolute;font-size:8px;color:#666;font-weight:bold;letter-spacing:.5px}
 .coord-file{bottom:2px;right:3px}
 .coord-rank{top:2px;left:3px}
 
 /* Game info */
-#gameInfo{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:10px;min-width:220px;font-size:.8rem}
-#gameInfo h3{color:#8888cc;margin-bottom:6px;font-size:.75rem;letter-spacing:1px}
-.info-row{display:flex;justify-content:space-between;margin:3px 0;padding:2px 0;border-bottom:1px solid #1a1a36}
+#gameInfo{background:#fff;border:1px solid #ccc;border-radius:6px;padding:10px;min-width:220px;font-size:.8rem}
+#gameInfo h3{color:#333;margin-bottom:6px;font-size:.75rem;letter-spacing:1px}
+.info-row{display:flex;justify-content:space-between;margin:3px 0;padding:2px 0;border-bottom:1px solid #ddd}
 .info-row:last-child{border-bottom:none}
-.info-label{color:#6666aa}.info-value{color:#ddddff;font-weight:bold}
+.info-label{color:#666}.info-value{color:#000;font-weight:bold}
 
 /* LH panel */
-#lhPanel{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:12px;min-width:260px}
-#lhPanel h3{color:#8888cc;margin-bottom:8px;font-size:.75rem;letter-spacing:1px}
+#lhPanel{background:#fff;border:1px solid #ccc;border-radius:6px;padding:12px;min-width:260px}
+#lhPanel h3{color:#333;margin-bottom:8px;font-size:.75rem;letter-spacing:1px}
 
 /* LH bar */
 .lh-metric{margin-bottom:10px}
-.lh-name{font-size:.7rem;color:#6666aa;margin-bottom:3px;letter-spacing:.5px}
-.lh-bar-bg{width:100%;height:12px;background:#0f0f1a;border:1px solid #2a2a4a;border-radius:3px;overflow:hidden}
+.lh-name{font-size:.7rem;color:#666;margin-bottom:3px;letter-spacing:.5px}
+.lh-bar-bg{width:100%;height:12px;background:#e0e0e0;border:1px solid #999;border-radius:3px;overflow:hidden}
 .lh-bar{height:12px;border-radius:3px;transition:width .2s,background .2s;display:flex;align-items:center;justify-content:flex-end;padding-right:4px}
 .lh-value{font-size:.7rem;font-weight:bold;color:#fff}
-.lh-positive{background:linear-gradient(90deg,#66ff6600,#66ff66aa)}
-.lh-neutral{background:linear-gradient(90deg,#6666ff00,#6666ffaa)}
-.lh-negative{background:linear-gradient(90deg,#ff666600,#ff6666aa)}
+.lh-positive{background:linear-gradient(90deg,#66ff6600,#66aa00aa)}
+.lh-neutral{background:linear-gradient(90deg,#3333ff00,#3333ffaa)}
+.lh-negative{background:linear-gradient(90deg,#ff666600,#ff4444aa)}
 
 /* Alert box */
-#alertBox{display:none;background:#2a1a1a;border:2px solid #ff4444;border-radius:6px;padding:10px;margin-top:8px;color:#ff8888;font-size:.75rem;letter-spacing:.5px}
-#alertBox.warning{border-color:#ffaa44;color:#ffcc88;background:#2a2a1a}
+#alertBox{display:none;background:#fff3cd;border:2px solid #ff4444;border-radius:6px;padding:10px;margin-top:8px;color:#ff0000;font-size:.75rem;letter-spacing:.5px}
+#alertBox.warning{border-color:#ffaa44;color:#cc6600;background:#ffe8cc}
 
 /* Loop list */
-#loopList{max-height:120px;overflow-y:auto;font-size:.7rem;color:#888899;margin-top:6px}
-.loop-entry{padding:3px 6px;margin:2px 0;background:#0f0f1a;border-left:2px solid #4444aa;border-radius:2px}
-.loop-entry.detected{border-left-color:#ff4444;background:#1a0f0f;color:#ff8888}
+#loopList{max-height:120px;overflow-y:auto;font-size:.7rem;color:#666;margin-top:6px}
+.loop-entry{padding:3px 6px;margin:2px 0;background:#f5f5f5;border-left:2px solid #3333ff;border-radius:2px}
+.loop-entry.detected{border-left-color:#ff4444;background:#ffe0e0;color:#cc0000}
 
 /* Move history */
-#historyPanel{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:12px;min-width:260px}
-#historyPanel h3{color:#8888cc;margin-bottom:8px;font-size:.75rem;letter-spacing:1px}
-#moveList{max-height:200px;overflow-y:auto;font-size:.7rem;color:#888899}
-.move-entry{padding:3px 6px;margin:1px 0;background:#0f0f1a;border-left:2px solid #3333aa;border-radius:2px;display:flex;justify-content:space-between}
-.move-entry.repetition{border-left-color:#ffaa44;color:#ffcc88}
-.move-num{min-width:30px;color:#6666aa}.move-san{flex:1}.move-lh{text-align:right;min-width:40px;font-weight:bold}
+#historyPanel{background:#fff;border:1px solid #ccc;border-radius:6px;padding:12px;min-width:260px}
+#historyPanel h3{color:#333;margin-bottom:8px;font-size:.75rem;letter-spacing:1px}
+#moveList{max-height:200px;overflow-y:auto;font-size:.7rem;color:#666}
+.move-entry{padding:3px 6px;margin:1px 0;background:#f5f5f5;border-left:2px solid #3333ff;border-radius:2px;display:flex;justify-content:space-between}
+.move-entry.repetition{border-left-color:#ffaa44;color:#cc6600}
+.move-num{min-width:30px;color:#999}.move-san{flex:1}.move-lh{text-align:right;min-width:40px;font-weight:bold}
 
 /* Status bar */
-#statusBar{margin-top:12px;text-align:center;padding:8px;background:#0f0f1a;border:1px solid #2a2a4a;border-radius:4px;font-size:.75rem;color:#aaaacc}
-#statusText{color:#ddddff;letter-spacing:.5px}
+#statusBar{margin-top:12px;text-align:center;padding:8px;background:#fff;border:1px solid #ccc;border-radius:4px;font-size:.75rem;color:#333}
+#statusText{color:#000;letter-spacing:.5px}
 
 /* Controls */
 #controls{margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-button{padding:8px 16px;background:#2a2a4a;border:1px solid #3333aa;color:#aaaadd;border-radius:4px;cursor:pointer;
+button{padding:8px 16px;background:#f0f0f0;border:1px solid #999;color:#333;border-radius:4px;cursor:pointer;
        font-family:inherit;font-size:.75rem;letter-spacing:.5px;transition:.15s}
-button:hover:not(:disabled){background:#3a3a5a;color:#ddddff}
+button:hover:not(:disabled){background:#e0e0e0;color:#000;border-color:#666}
 button:disabled{opacity:.4;cursor:default}
-button.danger{border-color:#ff4444;color:#ff8888}
-button.danger:hover:not(:disabled){background:#3a1a1a;color:#ffaaaa}
+button.danger{border-color:#ff4444;color:#ff0000}
+button.danger:hover:not(:disabled){background:#ffe0e0;color:#cc0000}
 
 /* Scrollbar */
 ::-webkit-scrollbar{width:8px}
-::-webkit-scrollbar-track{background:#0f0f1a}
-::-webkit-scrollbar-thumb{background:#3333aa;border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:#4444cc}
+::-webkit-scrollbar-track{background:#f0f0f0}
+::-webkit-scrollbar-thumb{background:#999;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#666}
 </style>
 </head>
 <body>
@@ -225,22 +223,17 @@ function renderBoard() {
       // Piece
       if(piece) {
         const pieceSpan = document.createElement('span');
-        pieceSpan.className = 'piece-' + piece.color;
         
-        // Map piece types to symbols
-        const pieceMap = {
-          'p': '♟ ',  'n': '♘', 'b': '♗', 'r': '♖', 'q': '♕', 'k': '♚',
-          'P': '♙',   'N': '♞', 'B': '♝', 'R': '♜', 'Q': '♛', 'K': '♔'
-        };
-        
-        // Fallback to letter if symbol doesn't render
-        const symbolMap = {
-          'p': 'p', 'n': 'n', 'b': 'b', 'r': 'r', 'q': 'q', 'k': 'k',
-          'P': 'P', 'N': 'N', 'B': 'B', 'R': 'R', 'Q': 'Q', 'K': 'K'
+        // Unicode chess symbols
+        const symbols = {
+          'wb': '♗', 'wk': '♔', 'wn': '♘', 'wp': '♙', 'wq': '♕', 'wr': '♖',
+          'bb': '♝', 'bk': '♚', 'bn': '♞', 'bp': '♟', 'bq': '♛', 'br': '♜'
         };
         
         const key = piece.color + piece.type;
-        pieceSpan.textContent = pieceMap[key] || symbolMap[key];
+        pieceSpan.textContent = symbols[key] || '?';
+        pieceSpan.style.fontSize = '28px';
+        pieceSpan.style.textShadow = piece.color === 'w' ? '1px 1px 2px rgba(0,0,0,.3)' : 'none';
         div.appendChild(pieceSpan);
       }
       
