@@ -46,7 +46,7 @@ echo.
 echo 🌐 Starting HTTP server (port 8000)...
 echo    - Serving interactive demo from games\chess directory
 echo.
-start "HTTP Server - Chess Demo" python -m http.server 8000
+start "HTTP Server - Chess Demo" /d "%cd%" python -m http.server 8000
 
 echo ⏳ Waiting 8 seconds for HTTP server to initialize...
 timeout /t 8 /nobreak

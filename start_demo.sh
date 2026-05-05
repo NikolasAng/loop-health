@@ -35,7 +35,9 @@ fi
 echo "🚀 Starting Flask backend server (port 5000)..."
 echo "   - Computing real Loop Health metrics"
 echo ""
-cd games/chess
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR/games/chess"
+
 python3 chess_lh_server.py &
 FLASK_PID=$!
 
