@@ -349,13 +349,32 @@ async function updateLHFromServer() {
     
     const result = await response.json();
     
-    if(result.success) {
+    if(result.success && result.moves.length > 0) {
       // Display latest move analysis
       const lastMove = result.moves[result.moves.length - 1];
       const summary = result.summary;
       
-      // Update LH displays
+      // Update LH Current
+      const lh = lastMove.lh || 0.0;
+      const lhPct = Math.round((lh + 1) / 2 * 100);
+      document.getElementById('lhBarCurrent').style.width = lhPct + '%';
+      document.getElementById('lhBarCurrent').className = 
+        lh > 0.1 ? 'lh-bar lh-positive' : lh < -0.1 ? 'lh-bar lh-negative' : 'lh-bar lh-neutral';
+      document.getElementById('lhValCurrent').textContent = lh.toFixed(3);
+      
+      // Update LH Circularity-free
+      const lh_circ = lastMove.lh_circ_free || 0.0;
+      const lhCircPct = Math.round((lh_circ + 1) / 2 * 100);
+      document.getElementById('lhBarCirc').style.width = lhCircPct + '%';
+      document.getElementById('lhBarCirc').className = 
+        lh_circ > 0.1 ? 'lh-bar lh-positive' : 'lh-bar lh-neutral';
+      document.getElementById('lhValCirc').textContent = lh_circ.toFixed(3);
+      
+      // Update Repetition Liability
       const repetitions = lastMove.repetitions || 1;
+      const repPct = Math.round(repetitions / 5 * 100);
+      document.getElementById('lhBarRep').style.width = Math.min(repPct, 100) + '%';
+      document.getElementById('lhValRep').textContent = repetitions;
       
       // Show loop detection
       const loopList = document.getElementById('loopList');
@@ -381,7 +400,7 @@ async function updateLHFromServer() {
         alertBox.style.display = 'block';
         alertBox.classList.add('warning');
         document.getElementById('alertText').textContent = 
-          `⚠ Position repeated ${summary.max_repetition}× — STAGNATION DETECTED by Loop Health!`;
+          `⚠ Position repeated ${summary.max_repetition}× — STAGNATION DETECTED!`;
       } else {
         alertBox.style.display = 'none';
       }
@@ -389,6 +408,7 @@ async function updateLHFromServer() {
   } catch(err) {
     // Server error - fall back to demo mode
     console.log('Server call failed:', err.message);
+    updateLHPanel();
   }
 }
 

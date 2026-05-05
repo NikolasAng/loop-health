@@ -13,13 +13,15 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import chess
 from loop_health.chess_engine import ChessLoopHealthEngine
+from loop_health.chess_game import ChessGame
 from loop_health.loop_health import LHConfig
 
 app = Flask(__name__)
 CORS(app)
 
 # Initialize engine
-engine = ChessLoopHealthEngine()
+game = ChessGame()
+engine = ChessLoopHealthEngine(game)
 config = LHConfig()
 
 @app.route('/health', methods=['GET'])
@@ -107,18 +109,25 @@ def compute_lh():
         # Build response with per-move metrics
         moves_response = []
         position_counts = {}
+        metrics_list = analysis.get('metrics', [])
         
         for idx, board in enumerate(history):
             fen = board.fen()
             rep_count = list(history[:idx+1]).count(board) + sum(1 for h in history[idx+1:] if h.fen() == fen)
             position_counts[fen] = rep_count
             
-            if idx > 0:
+            if idx > 0 and idx - 1 < len(metrics_list):
                 # Get LH for this move
+                metrics = metrics_list[idx - 1]
+                lh_value = getattr(metrics, 'lh', 0.0)
+                lh_circ_free = getattr(metrics, 'sp', 0.0)  # Use sp as proxy for LH without stagnation
+                
                 lh_data = {
                     'move_num': (idx + 1) // 2,
                     'move_color': 'W' if idx % 2 == 1 else 'B',
                     'san': move_list[idx-1].uci() if idx <= len(move_list) else '?',
+                    'lh': float(lh_value),
+                    'lh_circ_free': float(lh_circ_free),
                     'repetitions': rep_count,
                     'position_fen': fen[:40] + '...' if len(fen) > 40 else fen
                 }
@@ -156,14 +165,18 @@ def compute_lh():
             'analysis': {
                 'exact_loops': len(analysis.get('exact_loops', [])),
                 'functional_loops': len(analysis.get('functional_loops', [])),
-                'repetition_liability': float(analysis.get('metrics', {}).get('repetition_liability', 0))
+                'repetition_liability': float(analysis.get('repetition_liability', {}).get(0, 0))
             }
         })
     
     except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print(f"\n❌ ERROR in /compute-lh:\n{error_msg}\n")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'traceback': error_msg
         }), 500
 
 @app.route('/get-lh-single', methods=['POST'])

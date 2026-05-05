@@ -23,8 +23,8 @@ from typing import List, Dict, Optional
 import numpy as np
 import chess
 
-from chess_game import ChessGame
-from loop_health import LHConfig, TransitionMetrics, LoopRecord
+from .chess_game import ChessGame
+from .loop_health import LHConfig, TransitionMetrics, LoopRecord
 
 
 class ChessLoopHealthEngine:

@@ -22,8 +22,8 @@ import math
 
 import numpy as np
 
-from game import GridPursuitGame, State
-from features import FeatureExtractor
+from .game import GridPursuitGame, State
+from .features import FeatureExtractor
 
 # ── Configuration ──────────────────────────────────────────────────────────
 

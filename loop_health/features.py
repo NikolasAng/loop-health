@@ -24,7 +24,7 @@ from typing import List
 
 import numpy as np
 
-from game import GridPursuitGame, State
+from .game import GridPursuitGame, State
 
 FEATURE_DIM = 10
 
