@@ -43,7 +43,52 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### Basic Usage: Detecting Stagnation in Chess
+### ⚡ Interactive Chess Demo (One-Click Launch)
+
+**Windows users:**
+```cmd
+double-click start_demo.bat
+```
+
+**Mac/Linux users:**
+```bash
+chmod +x start_demo.sh
+./start_demo.sh
+```
+
+This automatically:
+1. ✅ Installs dependencies (if needed)
+2. ✅ Starts Flask backend server (http://localhost:5000)
+3. ✅ Starts HTTP demo server (http://localhost:8000)
+4. ✅ Opens interactive chess demo in your browser
+5. ✅ Computes real Loop Health metrics as you play
+
+**No terminal commands needed!**
+
+---
+
+### Manual Setup (For Developers)
+
+**Step 1: Start Flask backend**
+```bash
+cd games/chess
+python chess_lh_server.py
+```
+Runs on: `http://localhost:5000`
+
+**Step 2: Start HTTP server**
+```bash
+cd games/chess
+python -m http.server 8000
+```
+Runs on: `http://localhost:8000`
+
+**Step 3: Open browser**
+Navigate to: `http://localhost:8000/chess_lh_demo.html`
+
+---
+
+### Basic Python Usage: Detecting Stagnation in Chess
 
 ```python
 import chess
