@@ -111,6 +111,7 @@ button.danger:hover:not(:disabled){background:#ffe0e0;color:#cc0000}
       <button onclick="newGame()">↻ New Game</button>
       <button onclick="undoMove()" id="undoBtn" disabled>↶ Undo</button>
       <button onclick="resetView()">⊙ Reset View</button>
+      <button onclick="testServer()" style="background:#ff6600;color:white">🔧 Test Server</button>
     </div>
   </div>
 
@@ -217,6 +218,41 @@ function checkServerConnection() {
       console.log('✗ Server not available (run: python chess_lh_server.py)');
       document.getElementById('statusText').textContent = '✗ Server offline — showing demo mode only';
     });
+}
+
+function testServer() {
+  console.log('\n🧪 TESTING SERVER...');
+  console.log('Game history:', gameHistory.map(m => m.from + m.to + (m.promotion || '')));
+  
+  if(gameHistory.length === 0) {
+    alert('❌ No moves yet! Make a move first.');
+    return;
+  }
+  
+  const moves = gameHistory.map(m => m.from + m.to + (m.promotion || ''));
+  console.log('📤 Sending to server:', JSON.stringify({moves, current_move: moves.length}));
+  
+  fetch(SERVER_URL + '/compute-lh', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({moves, current_move: moves.length})
+  })
+  .then(r => {
+    console.log('Server response status:', r.status);
+    return r.json();
+  })
+  .then(data => {
+    console.log('📥 Server returned:', data);
+    if(data.success) {
+      alert('✅ Server works! Check console for details.');
+    } else {
+      alert('❌ Server error: ' + (data.error || 'Unknown'));
+    }
+  })
+  .catch(err => {
+    console.error('❌ Fetch error:', err);
+    alert('❌ Failed to connect: ' + err.message);
+  });
 }
 
 function newGame() {
@@ -340,6 +376,7 @@ async function updateLHFromServer() {
   
   try {
     const moves = gameHistory.map(m => m.from + m.to + (m.promotion || ''));
+    console.log('📤 Sending moves to server:', moves);
     
     const response = await fetch(SERVER_URL + '/compute-lh', {
       method: 'POST',
@@ -347,12 +384,20 @@ async function updateLHFromServer() {
       body: JSON.stringify({moves, current_move: moves.length})
     });
     
+    if(!response.ok) {
+      console.error('❌ Server error:', response.status, response.statusText);
+      return;
+    }
+    
     const result = await response.json();
+    console.log('📥 Server response:', result);
     
     if(result.success && result.moves.length > 0) {
       // Display latest move analysis
       const lastMove = result.moves[result.moves.length - 1];
       const summary = result.summary;
+      
+      console.log('✓ Updating LH display with:', lastMove);
       
       // Update LH Current
       const lh = lastMove.lh || 0.0;
@@ -404,11 +449,11 @@ async function updateLHFromServer() {
       } else {
         alertBox.style.display = 'none';
       }
+    } else {
+      console.warn('⚠ Server returned invalid response:', result);
     }
   } catch(err) {
-    // Server error - fall back to demo mode
-    console.log('Server call failed:', err.message);
-    updateLHPanel();
+    console.error('❌ Server call failed:', err.message);
   }
 }
 
@@ -463,16 +508,15 @@ function calculateMaterial(color) {
 function updateDisplay() {
   renderBoard();
   updateGameInfo();
-  
-  // Try to get real LH from server, fall back to demo calculation
-  if(serverConnected && gameHistory.length > 0) {
-    updateLHFromServer();
-  } else {
-    updateLHPanel();
-  }
-  
   updateMoveHistory();
   updateStatus();
+  
+  // Show demo values first, then fetch real LH from server
+  updateLHPanel();
+  
+  if(serverConnected && gameHistory.length > 0) {
+    updateLHFromServer();  // This will update the display when server responds
+  }
 }
 
 function updateGameInfo() {

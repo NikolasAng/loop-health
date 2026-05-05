@@ -24,6 +24,19 @@ game = ChessGame()
 engine = ChessLoopHealthEngine(game)
 config = LHConfig()
 
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint"""
+    return jsonify({
+        'service': 'Chess Loop Health Server',
+        'status': 'running',
+        'endpoints': {
+            'health': 'GET /health',
+            'compute_lh': 'POST /compute-lh',
+            'get_lh_single': 'POST /get-lh-single'
+        }
+    })
+
 @app.route('/health', methods=['GET'])
 def health():
     """Health check"""
