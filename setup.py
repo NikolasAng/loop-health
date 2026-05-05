@@ -11,7 +11,7 @@ setup(
     name="loop-health",
     version="1.0.0",
     author="Nikolaos Angelosoulis",
-    author_email="nikolaosang@gmail.com",
+    author_email="nikolaos@romgon.net",
     description="Stagnation detection framework for deterministic sequential games",
     long_description=long_description,
     long_description_content_type="text/markdown",

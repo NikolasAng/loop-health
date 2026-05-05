@@ -2,6 +2,9 @@
 """
 Loop Health Chess Server
 Real-time LH computation backend for the HTML demo
+
+Author: Nikolaos Angelosoulis (nikolaos@romgon.net)
+GitHub: https://github.com/NikolasAng/loop-health
 """
 import sys
 sys.path.insert(0, '../../')

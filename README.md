@@ -203,7 +203,7 @@ If you use Loop Health in your research, please cite:
 ## Contact
 
 **Author**: Nikolaos Angelosoulis  
-**Email**: nikolaosang@gmail.com  
+**Email**: nikolaos@romgon.net  
 **GitHub**: https://github.com/NikolasAng
 
 ## References
