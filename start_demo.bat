@@ -39,18 +39,8 @@ echo.
 cd games\chess
 start "Flask Server - Loop Health Chess LH" python chess_lh_server.py
 
-echo ⏳ Waiting for Flask server to start (15 seconds)...
-set "count=0"
-:flask_wait
-set /a count+=1
-timeout /t 1 /nobreak >nul
-if %count% lss 15 (
-    powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:5000/health' -TimeoutSec 1 -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
-    if errorlevel 1 (
-        goto flask_wait
-    )
-)
-echo ✅ Flask server ready
+echo ⏳ Waiting 12 seconds for Flask server to initialize...
+timeout /t 12 /nobreak
 
 echo.
 echo 🌐 Starting HTTP server (port 8000)...
@@ -59,22 +49,11 @@ echo.
 cd ..
 start "HTTP Server - Chess Demo" python -m http.server 8000
 
-echo ⏳ Waiting for HTTP server to start (10 seconds)...
-set "count=0"
-:http_wait
-set /a count+=1
-timeout /t 1 /nobreak >nul
-if %count% lss 10 (
-    powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:8000/' -TimeoutSec 1 -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
-    if errorlevel 1 (
-        goto http_wait
-    )
-)
-echo ✅ HTTP server ready
+echo ⏳ Waiting 8 seconds for HTTP server to initialize...
+timeout /t 8 /nobreak
 
 echo.
 echo 🎮 Opening Chess demo in browser...
-timeout /t 2 /nobreak
 start http://localhost:8000/chess_lh_demo.html
 
 echo.

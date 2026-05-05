@@ -39,16 +39,8 @@ cd games/chess
 python3 chess_lh_server.py &
 FLASK_PID=$!
 
-echo "⏳ Waiting for Flask server to start (15 seconds)..."
-count=0
-while [ $count -lt 15 ]; do
-    sleep 1
-    if curl -s http://localhost:5000/health >/dev/null 2>&1; then
-        echo "✅ Flask server ready"
-        break
-    fi
-    count=$((count + 1))
-done
+echo "⏳ Waiting 12 seconds for Flask server to initialize..."
+sleep 12
 
 echo ""
 echo "🌐 Starting HTTP server (port 8000)..."
@@ -58,20 +50,11 @@ cd ..
 python3 -m http.server 8000 >/dev/null 2>&1 &
 HTTP_PID=$!
 
-echo "⏳ Waiting for HTTP server to start (10 seconds)..."
-count=0
-while [ $count -lt 10 ]; do
-    sleep 1
-    if curl -s http://localhost:8000/ >/dev/null 2>&1; then
-        echo "✅ HTTP server ready"
-        break
-    fi
-    count=$((count + 1))
-done
+echo "⏳ Waiting 8 seconds for HTTP server to initialize..."
+sleep 8
 
 echo ""
 echo "🎮 Opening Chess demo in browser..."
-sleep 2
 if [[ "$OSTYPE" == "darwin"* ]]; then
     open http://localhost:8000/chess_lh_demo.html
 else
