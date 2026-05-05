@@ -38,8 +38,8 @@ echo.
 cd games\chess
 start "Flask Server - Loop Health Chess LH" python chess_lh_server.py
 
-echo ⏳ Waiting for Flask server to initialize...
-timeout /t 3 /nobreak
+echo ⏳ Waiting for Flask server to initialize (5 seconds)...
+timeout /t 5 /nobreak
 
 echo.
 echo 🌐 Starting HTTP server (port 8000)...
@@ -47,11 +47,12 @@ echo    - Serving interactive demo
 echo.
 start "HTTP Server - Chess Demo" python -m http.server 8000
 
-echo ⏳ Waiting for HTTP server to initialize...
-timeout /t 2 /nobreak
+echo ⏳ Waiting for HTTP server to initialize (5 seconds)...
+timeout /t 5 /nobreak
 
 echo.
 echo 🎮 Opening Chess demo in browser...
+timeout /t 2 /nobreak
 start http://localhost:8000/chess_lh_demo.html
 
 echo.

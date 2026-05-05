@@ -39,8 +39,8 @@ cd games/chess
 python3 chess_lh_server.py &
 FLASK_PID=$!
 
-echo "⏳ Waiting for Flask server to initialize..."
-sleep 3
+echo "⏳ Waiting for Flask server to initialize (5 seconds)..."
+sleep 5
 
 echo ""
 echo "🌐 Starting HTTP server (port 8000)..."
@@ -49,11 +49,12 @@ echo ""
 python3 -m http.server 8000 &
 HTTP_PID=$!
 
-echo "⏳ Waiting for HTTP server to initialize..."
-sleep 2
+echo "⏳ Waiting for HTTP server to initialize (5 seconds)..."
+sleep 5
 
 echo ""
 echo "🎮 Opening Chess demo in browser..."
+sleep 2
 if [[ "$OSTYPE" == "darwin"* ]]; then
     open http://localhost:8000/chess_lh_demo.html
 else
