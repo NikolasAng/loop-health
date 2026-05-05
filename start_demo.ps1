@@ -55,8 +55,8 @@ Start-Process -FilePath python -ArgumentList "chess_lh_server.py" `
     -WindowStyle Minimized `
     -PassThru | Out-Null
 
-Write-Host "⏳ Waiting 12 seconds for Flask server to initialize..."
-for ($i = 1; $i -le 12; $i++) {
+Write-Host "⏳ Waiting 15 seconds for Flask server to initialize..."
+for ($i = 1; $i -le 15; $i++) {
     Write-Host -NoNewline "."
     Start-Sleep -Seconds 1
 }
@@ -65,7 +65,7 @@ Write-Host " Done"
 # Check if Flask is responding
 Write-Host "Checking Flask server..."
 $flaskReady = $false
-for ($i = 1; $i -le 5; $i++) {
+for ($i = 1; $i -le 15; $i++) {
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:5000/health" -TimeoutSec 1 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
@@ -96,8 +96,8 @@ Start-Process -FilePath python -ArgumentList "-m http.server 8000" `
     -WindowStyle Minimized `
     -PassThru | Out-Null
 
-Write-Host "⏳ Waiting 8 seconds for HTTP server to initialize..."
-for ($i = 1; $i -le 8; $i++) {
+Write-Host "⏳ Waiting 20 seconds for HTTP server to initialize..."
+for ($i = 1; $i -le 20; $i++) {
     Write-Host -NoNewline "."
     Start-Sleep -Seconds 1
 }
@@ -106,7 +106,7 @@ Write-Host " Done"
 # Check if HTTP is responding
 Write-Host "Checking HTTP server..."
 $httpReady = $false
-for ($i = 1; $i -le 5; $i++) {
+for ($i = 1; $i -le 15; $i++) {
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:8000/" -TimeoutSec 1 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
@@ -120,20 +120,39 @@ for ($i = 1; $i -le 5; $i++) {
     }
 }
 if (-not $httpReady) {
-    Write-Host "⚠️  HTTP server may not be ready, but continuing..."
+    Write-Host "⚠️  HTTP server may not be responding, but continuing..."
 }
 
 Write-Host ""
 Write-Host "🎮 Opening Chess demo in browser..."
 Write-Host ""
+
+# Final verification
+Write-Host "Verifying HTML file exists..."
+$htmlFile = Join-Path $chessDir "chess_lh_demo.html"
+if (Test-Path $htmlFile) {
+    Write-Host "✓ HTML file found: $htmlFile"
+}
+else {
+    Write-Host "❌ ERROR: HTML file not found at $htmlFile"
+    Write-Host "Available files in $chessDir`:"
+    Get-ChildItem $chessDir | Select-Object -ExpandProperty Name
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+
+# Try to open in browser
 Start-Process "http://localhost:8000/chess_lh_demo.html"
 
+Write-Host ""
 Write-Host "✅ ALL SYSTEMS READY!"
 Write-Host ""
-Write-Host "Servers running in background"
-Write-Host "Logs: $logDir"
+Write-Host "If the browser shows an error, try:"
+Write-Host "  1. Wait 5 more seconds for servers to fully initialize"
+Write-Host "  2. Manually open: http://localhost:8000/chess_lh_demo.html"
+Write-Host "  3. Or check the logs:"
+Write-Host "     - Flask: $flaskLog"
+Write-Host "     - HTTP:  $httpLog"
 Write-Host ""
-Write-Host "If you see an error in the browser, check:"
-Write-Host "  - Flask log: $flaskLog"
-Write-Host "  - HTTP log:  $httpLog"
+Write-Host "Servers running in background"
 Write-Host ""
