@@ -19,25 +19,25 @@ Write-Host "╚═════════════════════�
 Write-Host ""
 
 # Check Python
-try {
-    $pythonVersion = python --version 2>&1
-    Write-Host "✓ Python found: $pythonVersion"
-} catch {
+$pythonVersion = python --version 2>&1
+if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ ERROR: Python not found"
     Write-Host "Download from: https://www.python.org/downloads/"
     Read-Host "Press Enter to exit"
     exit 1
 }
+Write-Host "✓ Python found: $pythonVersion"
 
 # Check packages
 Write-Host "Checking required packages..."
-try {
-    python -c "import flask, chess" 2>&1 | Out-Null
-    Write-Host "✓ Required packages found"
-} catch {
+python -c "import flask, chess" 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
     Write-Host "⚠️  Installing required packages..."
     pip install flask flask-cors python-chess numpy 2>&1 | Out-Null
     Write-Host "✓ Packages installed"
+}
+else {
+    Write-Host "✓ Required packages found"
 }
 
 Write-Host ""
@@ -73,7 +73,8 @@ for ($i = 1; $i -le 5; $i++) {
             $flaskReady = $true
             break
         }
-    } catch {
+    }
+    catch {
         Start-Sleep -Seconds 1
     }
 }
@@ -113,7 +114,8 @@ for ($i = 1; $i -le 5; $i++) {
             $httpReady = $true
             break
         }
-    } catch {
+    }
+    catch {
         Start-Sleep -Seconds 1
     }
 }
