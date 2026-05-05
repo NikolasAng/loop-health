@@ -38,7 +38,8 @@ echo ""
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/games/chess"
 
-python3 chess_lh_server.py &
+# Start Flask server in background
+python3 chess_lh_server.py > /tmp/flask.log 2>&1 &
 FLASK_PID=$!
 
 echo "⏳ Waiting 12 seconds for Flask server to initialize..."
@@ -46,9 +47,10 @@ sleep 12
 
 echo ""
 echo "🌐 Starting HTTP server (port 8000)..."
-echo "   - Serving interactive demo from games/chess directory"
+echo "   - Serving from games/chess directory where HTML exists"
 echo ""
-python3 -m http.server 8000 >/dev/null 2>&1 &
+# Start HTTP server in background (must be in games/chess directory)
+python3 -m http.server 8000 > /tmp/http.log 2>&1 &
 HTTP_PID=$!
 
 echo "⏳ Waiting 8 seconds for HTTP server to initialize..."
@@ -61,6 +63,10 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
     xdg-open http://localhost:8000/chess_lh_demo.html 2>/dev/null || echo "Please open http://localhost:8000/chess_lh_demo.html in your browser"
 fi
+
+echo ""
+echo "✅ Servers running in background (PIDs: Flask=$FLASK_PID HTTP=$HTTP_PID)"
+echo "   To stop: kill $FLASK_PID $HTTP_PID"
 
 echo ""
 echo "✅ ALL SYSTEMS READY!"

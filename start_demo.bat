@@ -1,5 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
+
 REM Loop Health - Chess Interactive Demo Launcher
 REM One-click setup for Windows users
 
@@ -36,17 +37,17 @@ if errorlevel 1 (
 echo 🚀 Starting Flask backend server (port 5000)...
 echo    - Computing real Loop Health metrics
 echo.
-cd games\chess
-start "Flask Server - Loop Health Chess LH" python chess_lh_server.py
+set "CHESS_DIR=%cd%\games\chess"
+start "Flask Server - Loop Health Chess LH" /D "%CHESS_DIR%" python chess_lh_server.py
 
 echo ⏳ Waiting 12 seconds for Flask server to initialize...
 timeout /t 12 /nobreak
 
 echo.
 echo 🌐 Starting HTTP server (port 8000)...
-echo    - Serving interactive demo from games\chess directory
+echo    - Serving from games\chess directory where HTML exists
 echo.
-start "HTTP Server - Chess Demo" /d "%cd%" python -m http.server 8000
+start "HTTP Server - Chess Demo" /D "%CHESS_DIR%" python -m http.server 8000
 
 echo ⏳ Waiting 8 seconds for HTTP server to initialize...
 timeout /t 8 /nobreak
@@ -54,6 +55,13 @@ timeout /t 8 /nobreak
 echo.
 echo 🎮 Opening Chess demo in browser...
 start http://localhost:8000/chess_lh_demo.html
+
+echo.
+echo ✅ ALL SYSTEMS READY!
+echo.
+echo 📝 To stop the servers, close the server windows
+echo.
+pause
 
 echo.
 echo ✅ ALL SYSTEMS READY!
