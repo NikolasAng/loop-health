@@ -18,9 +18,11 @@ h1{font-size:1.2rem;color:#8888cc;letter-spacing:2px;margin-bottom:4px;font-weig
 #boardWrapper{border:3px solid #4444aa;background:#1a1a2e;position:relative;border-radius:4px}
 #chessboard{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:0;width:400px;height:400px;user-select:none}
 .square{width:50px;height:50px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;
-        font-size:28px;transition:background .1s;border:1px solid rgba(68,68,170,.2)}
+        font-size:24px;font-weight:bold;transition:background .1s;border:1px solid rgba(68,68,170,.2);font-family:Arial,sans-serif}
 .square.light{background:#2a2a4a}
 .square.dark{background:#1a1a3a}
+.piece-w{color:#ffffff;text-shadow:2px 2px 4px rgba(0,0,0,.7),0 0 2px rgba(100,100,200,.5)}
+.piece-b{color:#222222;text-shadow:2px 2px 4px rgba(255,255,255,.3),0 0 2px rgba(100,100,200,.5)}
 .square.selected{background:#4a4a6a!important}
 .square.highlight{box-shadow:inset 0 0 8px #66ff66aa}
 .square.stagnant{box-shadow:inset 0 0 12px #ff4444aa;animation:pulse-stagnant .6s infinite}
@@ -222,7 +224,24 @@ function renderBoard() {
       
       // Piece
       if(piece) {
-        div.textContent = pieces[piece.color + piece.type];
+        const pieceSpan = document.createElement('span');
+        pieceSpan.className = 'piece-' + piece.color;
+        
+        // Map piece types to symbols
+        const pieceMap = {
+          'p': '♟ ',  'n': '♘', 'b': '♗', 'r': '♖', 'q': '♕', 'k': '♚',
+          'P': '♙',   'N': '♞', 'B': '♝', 'R': '♜', 'Q': '♛', 'K': '♔'
+        };
+        
+        // Fallback to letter if symbol doesn't render
+        const symbolMap = {
+          'p': 'p', 'n': 'n', 'b': 'b', 'r': 'r', 'q': 'q', 'k': 'k',
+          'P': 'P', 'N': 'N', 'B': 'B', 'R': 'R', 'Q': 'Q', 'K': 'K'
+        };
+        
+        const key = piece.color + piece.type;
+        pieceSpan.textContent = pieceMap[key] || symbolMap[key];
+        div.appendChild(pieceSpan);
       }
       
       // Coordinates
